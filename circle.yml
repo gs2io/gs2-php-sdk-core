@@ -5,7 +5,7 @@ machine:
 
 test:
   override:
-    - phpunit --coverage-html=reports/coverage_html/ --coverage-clover=reports/coverage.xml tests/
+    - phpunit tests/
   post:
     - cp -rf reports $CIRCLE_ARTIFACTS
     - cp coverage.xml $CIRCLE_ARTIFACTS
