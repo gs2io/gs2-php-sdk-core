@@ -14,7 +14,7 @@
         <directory>./tests/</directory>
     </testsuite>
     <logging>
-    	<log type="coverage-html" target="./report" />
+    	<log type="coverage-html" target="./reports" />
 	    <log type="coverage-clover" target="./coverage.xml" />
     </logging>
     <filter>
