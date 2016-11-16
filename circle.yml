@@ -16,5 +16,5 @@ deployment:
   maven:
     branch: master
     commands:
-      - bash ~/publish-${PUBLISH_VERSION}/php/publish_packagist.sh
+      - bash ~/publish-${PUBLISH_VERSION}/php/publish_packagist.sh ~/publish-${PUBLISH_VERSION}/
     
