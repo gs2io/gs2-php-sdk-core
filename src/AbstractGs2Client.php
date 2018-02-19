@@ -201,7 +201,7 @@ abstract class AbstractGs2Client {
 			$params += ['headers' => $header];
 		}
 		$params += ['query' => $query];
-		$params += ['json' => $body];
+		$params += ['body' => $body];
 		$client = new Client(['base_uri' => $host]);
 		try {
 		    /** @var ResponseInterface $response */
@@ -262,7 +262,7 @@ abstract class AbstractGs2Client {
 			$params += ['headers' => $header];
 		}
 		$params += ['query' => $query];
-		$params += ['json' => $body];
+		$params += ['body' => $body];
 		$client = new Client(['base_uri' => $host]);
 		try {
             /** @var ResponseInterface $response */
