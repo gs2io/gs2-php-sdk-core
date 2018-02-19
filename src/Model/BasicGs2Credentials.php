@@ -68,12 +68,43 @@ class BasicGs2Credentials implements IGs2Credential {
 		return $this->clientSecret;
 	}
 
+    /**
+     * 署名を作成
+     *
+     * @param string $module アクセス対象モジュール
+     * @param string $function アクセス対象関数
+     * @param integer $timestamp タイムスタンプ
+     * @return string 署名
+     */
+    private function createSign(string $module, string $function, int $timestamp)
+    {
+        return base64_encode(
+            hash_hmac(
+                'sha256',
+                $module. ':'. $function. ':'. $timestamp,
+                base64_decode($this->getClientSecret()),
+                true
+            )
+        );
+    }
+
+    /**
+     * 認証処理
+     * @param string $module モジュール名
+     * @param string $function ファンクション名
+     * @param int $timestamp タイムスタンプ
+     * @return array
+     */
     public function authorized(
-        string $service,
         string $module,
         string $function,
-        int $timestamp)
+        int $timestamp): array
     {
-
+        $sign = $this->createSign($module, $function, $timestamp);
+        return [
+            'X-GS2-CLIENT-ID' => $this->getClientId(),
+            'X-GS2-REQUEST-TIMESTAMP' => $timestamp,
+            'X-GS2-REQUEST-SIGN' => $sign
+        ];
     }
 }

@@ -106,26 +106,6 @@ abstract class AbstractGs2Client {
 	}
 
 	/**
-	 * 署名を作成
-	 * 
-	 * @param string $module アクセス対象モジュール
-	 * @param string $function アクセス対象関数
-	 * @param integer $timestamp タイムスタンプ
-	 * @return string 署名
-	 */
-	private function createSign(string $module, string $function, int $timestamp)
-    {
-		return base64_encode(
-		    hash_hmac(
-		        'sha256',
-                $module. ':'. $function. ':'. $timestamp,
-                base64_decode($this->credentials->getClientSecret()),
-                true
-            )
-        );
-	}
-	
-	/**
 	 * GET リクエストを発行
 	 * 
 	 * @param string $module アクセス対象モジュール
@@ -150,12 +130,11 @@ abstract class AbstractGs2Client {
 		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
-		$sign = $this->createSign($module, $function, $timestamp);
-		$header = [
-				'X-GS2-CLIENT-ID' => $this->credentials->getClientId(),
-				'X-GS2-REQUEST-TIMESTAMP' => $timestamp,
-				'X-GS2-REQUEST-SIGN' => $sign
-		];
+		$header = $this->credentials->authorized(
+            $module,
+            $function,
+            $timestamp
+        );
 		if(isset($params['headers'])) {
 			$params['headers'] = array_merge($params['headers'], $header);
 		} else {
@@ -211,12 +190,11 @@ abstract class AbstractGs2Client {
 		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
-		$sign = $this->createSign($module, $function, $timestamp);
-		$header = [
-				'X-GS2-CLIENT-ID' => $this->credentials->getClientId(),
-				'X-GS2-REQUEST-TIMESTAMP' => $timestamp,
-				'X-GS2-REQUEST-SIGN' => $sign
-		];
+        $header = $this->credentials->authorized(
+            $module,
+            $function,
+            $timestamp
+        );
 		if(isset($params['headers'])) {
 			$params['headers'] = array_merge($params['headers'], $header);
 		} else {
@@ -273,12 +251,11 @@ abstract class AbstractGs2Client {
 		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
-		$sign = $this->createSign($module, $function, $timestamp);
-		$header = [
-				'X-GS2-CLIENT-ID' => $this->credentials->getClientId(),
-				'X-GS2-REQUEST-TIMESTAMP' => $timestamp,
-				'X-GS2-REQUEST-SIGN' => $sign
-		];
+        $header = $this->credentials->authorized(
+            $module,
+            $function,
+            $timestamp
+        );
 		if(isset($params['headers'])) {
 			$params['headers'] = array_merge($params['headers'], $header);
 		} else {
@@ -331,12 +308,11 @@ abstract class AbstractGs2Client {
 		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
-		$sign = $this->createSign($module, $function, $timestamp);
-		$header = [
-				'X-GS2-CLIENT-ID' => $this->credentials->getClientId(),
-				'X-GS2-REQUEST-TIMESTAMP' => $timestamp,
-				'X-GS2-REQUEST-SIGN' => $sign
-		];
+        $header = $this->credentials->authorized(
+            $module,
+            $function,
+            $timestamp
+        );
 		if(isset($params['headers'])) {
 			$params['headers'] = array_merge($params['headers'], $header);
 		} else {

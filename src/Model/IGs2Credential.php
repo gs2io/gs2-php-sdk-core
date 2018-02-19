@@ -28,15 +28,14 @@ interface IGs2Credential
 {
     /**
      * 認証処理
-     * @param string $service サービス名
      * @param string $module モジュール名
      * @param string $function ファンクション名
      * @param int $timestamp タイムスタンプ
+     * @return array
      */
     public function authorized(
-        string $service,
         string $module,
         string $function,
-        int $timestamp);
+        int $timestamp): array;
 
 }
