@@ -15,7 +15,7 @@
  * permissions and limitations under the License.
  */
 
-namespace Gs2\Control;
+namespace Gs2\Core\Control;
 
 class Gs2UserRequest extends Gs2BasicRequest
 {

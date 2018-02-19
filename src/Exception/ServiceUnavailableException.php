@@ -15,7 +15,7 @@
  * permissions and limitations under the License.
  */
 
-namespace Gs2\Exception;
+namespace Gs2\Core\Exception;
 
 /**
  * ServiceUnavailableException(503) エラーを表現するためのクラス

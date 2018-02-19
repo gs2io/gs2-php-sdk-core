@@ -15,22 +15,22 @@
  limitations under the License.
  */
 
-namespace Gs2;
+namespace Gs2\Core;
 
-use Gs2\Model\BasicGs2Credentials;
+use Gs2\Core\Exception\BadGatewayException as BadGatewayException;
+use Gs2\Core\Exception\BadRequestException as BadRequestException;
+use Gs2\Core\Exception\ConflictException as ConflictException;
+use Gs2\Core\Exception\InternalServerErrorException as InternalServerErrorException;
+use Gs2\Core\Exception\NotFoundException as NotFoundException;
+use Gs2\Core\Exception\NullPointerException as NullPointerException;
+use Gs2\Core\Exception\QuotaExceedException as QuotaExceedException;
+use Gs2\Core\Exception\RequestTimeoutException as RequestTimeoutException;
+use Gs2\Core\Exception\ServiceUnavailableException as ServiceUnavailableException;
+use Gs2\Core\Exception\UnauthorizedException as UnauthorizedException;
+use Gs2\Core\Model\IGs2Credential;
+use Gs2\Core\Model\Region;
 use GuzzleHttp\Client as Client;
 use GuzzleHttp\Exception\RequestException as RequestException;
-
-use Gs2\Exception\BadRequestException as BadRequestException;
-use Gs2\Exception\BadGatewayException as BadGatewayException;
-use Gs2\Exception\ConflictException as ConflictException;
-use Gs2\Exception\UnauthorizedException as UnauthorizedException;
-use Gs2\Exception\QuotaExceedException as QuotaExceedException;
-use Gs2\Exception\NotFoundException as NotFoundException;
-use Gs2\Exception\InternalServerErrorException as InternalServerErrorException;
-use Gs2\Exception\ServiceUnavailableException as ServiceUnavailableException;
-use Gs2\Exception\RequestTimeoutException as RequestTimeoutException;
-use Gs2\Exception\NullPointerException as NullPointerException;
 use GuzzleHttp\Message\ResponseInterface;
 
 /**
@@ -49,7 +49,7 @@ abstract class AbstractGs2Client {
 	private $region;
 
     /**
-     * @var BasicGs2Credentials
+     * @var IGs2Credential
      */
 	private $credentials;
 
@@ -61,20 +61,50 @@ abstract class AbstractGs2Client {
 	/**
 	 * コンストラクタ。
 	 * 
-	 * @param string $region リージョン名
-	 * @param BasicGs2Credentials $credentials 認証情報
+	 * @param IGs2Credential $credentials 認証情報
 	 * @param array $options オプション
 	 */
 	public function __construct(
-        string $region,
-        BasicGs2Credentials $credentials,
+        IGs2Credential $credentials,
         array &$options = []
     ) {
-		$this->region = $region;
+		$this->region = Region::AP_NORTHEAST_1;
 		$this->credentials = $credentials;
 		$this->options = $options;
 	}
-	
+
+    /**
+     * アクセス先リージョンを取得
+     *
+     * @return string アクセス先リージョン
+     */
+    public function getRegion(): string
+    {
+        return $this->region;
+    }
+
+    /**
+     * アクセス先リージョンを設定
+     *
+     * @param string $region アクセス先リージョン
+     */
+    public function setRegion(string $region)
+    {
+        $this->region = $region;
+    }
+
+    /**
+     * アクセス先リージョンを設定
+     *
+     * @param string $region アクセス先リージョン
+     * @return self
+     */
+    public function withRegion(string $region): self
+    {
+        $this->setRegion($region);
+        return $this;
+	}
+
 	/**
 	 * 署名を作成
 	 * 

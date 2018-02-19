@@ -15,7 +15,7 @@
  * permissions and limitations under the License.
  */
 
-namespace Gs2\Control;
+namespace Gs2\Core\Control;
 
 abstract class Gs2BasicRequest
 {

@@ -15,7 +15,7 @@
  * permissions and limitations under the License.
  */
 
-namespace Gs2\Model;
+namespace Gs2\Core\Model;
 
 /**
  * 認証情報

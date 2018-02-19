@@ -16,6 +16,8 @@
  * permissions and limitations under the License.
  */
 
+namespace Gs2\Core\Model;
+
 /**
  * GS2リージョン
  */

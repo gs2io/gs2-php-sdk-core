@@ -15,7 +15,7 @@
  * permissions and limitations under the License.
  */
 
-namespace Gs2\Exception;
+namespace Gs2\Core\Exception;
 
 /**
  * BadRequest(400) エラーを表現するためのクラス
