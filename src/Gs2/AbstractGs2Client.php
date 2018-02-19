@@ -15,22 +15,23 @@
  limitations under the License.
  */
 
-namespace GS2\Core;
+namespace Gs2;
 
+use Gs2\Model\BasicGs2Credentials;
 use GuzzleHttp\Client as Client;
 use GuzzleHttp\Exception\RequestException as RequestException;
 
-use GS2\Core\Gs2Credentials as Gs2Credentials;
-use GS2\Core\Exception\BadRequestException as BadRequestException;
-use GS2\Core\Exception\BadGatewayException as BadGatewayException;
-use GS2\Core\Exception\ConflictException as ConflictException;
-use GS2\Core\Exception\UnauthorizedException as UnauthorizedException;
-use GS2\Core\Exception\QuotaExceedException as QuotaExceedException;
-use GS2\Core\Exception\NotFoundException as NotFoundException;
-use GS2\Core\Exception\InternalServerErrorException as InternalServerErrorException;
-use GS2\Core\Exception\ServiceUnavailableException as ServiceUnavailableException;
-use GS2\Core\Exception\RequestTimeoutException as RequestTimeoutException;
-use GS2\Core\Exception\NullPointerException as NullPointerException;
+use Gs2\Exception\BadRequestException as BadRequestException;
+use Gs2\Exception\BadGatewayException as BadGatewayException;
+use Gs2\Exception\ConflictException as ConflictException;
+use Gs2\Exception\UnauthorizedException as UnauthorizedException;
+use Gs2\Exception\QuotaExceedException as QuotaExceedException;
+use Gs2\Exception\NotFoundException as NotFoundException;
+use Gs2\Exception\InternalServerErrorException as InternalServerErrorException;
+use Gs2\Exception\ServiceUnavailableException as ServiceUnavailableException;
+use Gs2\Exception\RequestTimeoutException as RequestTimeoutException;
+use Gs2\Exception\NullPointerException as NullPointerException;
+use GuzzleHttp\Message\ResponseInterface;
 
 /**
  * APIクライアントの基底クラス
@@ -40,19 +41,38 @@ use GS2\Core\Exception\NullPointerException as NullPointerException;
  */
 abstract class AbstractGs2Client {
 	
-	const ENDPOINT_HOST = 'https://{service}.{region}.gs2.io';
+	const ENDPOINT_HOST = 'https://{service}.{region}.gs2io.com';
+
+    /**
+     * @var string
+     */
+	private $region;
+
+    /**
+     * @var BasicGs2Credentials
+     */
+	private $credentials;
+
+    /**
+     * @var array
+     */
+	private $options;
 
 	/**
 	 * コンストラクタ。
 	 * 
 	 * @param string $region リージョン名
-	 * @param Gs2Credentials $credentials 認証情報
+	 * @param BasicGs2Credentials $credentials 認証情報
 	 * @param array $options オプション
 	 */
-	public function __construct($region, Gs2Credentials $credentials, &$options = []) {
+	public function __construct(
+        string $region,
+        BasicGs2Credentials $credentials,
+        array &$options = []
+    ) {
 		$this->region = $region;
 		$this->credentials = $credentials;
-		$this->params = $options;
+		$this->options = $options;
 	}
 	
 	/**
@@ -63,8 +83,16 @@ abstract class AbstractGs2Client {
 	 * @param integer $timestamp タイムスタンプ
 	 * @return string 署名
 	 */
-	private function createSign($module, $function, $timestamp) {
-		return base64_encode(hash_hmac('sha256', $module. ':'. $function. ':'. $timestamp, base64_decode($this->credentials->getClientSecret()), true));
+	private function createSign(string $module, string $function, int $timestamp)
+    {
+		return base64_encode(
+		    hash_hmac(
+		        'sha256',
+                $module. ':'. $function. ':'. $timestamp,
+                base64_decode($this->credentials->getClientSecret()),
+                true
+            )
+        );
 	}
 	
 	/**
@@ -75,15 +103,21 @@ abstract class AbstractGs2Client {
 	 * @param string $endpoint アクセス先サブドメイン
 	 * @param string $path アクセス先パス
 	 * @param array $query クエリストリング
-	 * @param array $extparams 拡張オプション
+	 * @param array $alternativeParams 拡張オプション
 	 * @return array 応答内容(JSON)
-	 * 
-	 * @throws BadRequestException リクエストパラメータが不正な場合にスローされます
+     * @throws InternalServerErrorException
 	 */
-	protected function doGet($module, $function, $endpoint, $path, array &$query = [], array &$extparams = []) {
+	protected function doGet(
+	    string $module,
+        string $function,
+        string $endpoint,
+        string $path,
+        array &$query = [],
+        array &$alternativeParams = []
+    ) {
 		$host = str_replace('{service}', $endpoint, str_replace('{region}', $this->region, AbstractGs2Client::ENDPOINT_HOST));
-		$params = $this->params;
-		$params += $extparams;
+		$params = $this->options;
+		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
 		$sign = $this->createSign($module, $function, $timestamp);
@@ -100,6 +134,7 @@ abstract class AbstractGs2Client {
 		$params += ['query' => $query];
 		$client = new Client(['base_uri' => $host]);
 		try {
+            /** @var ResponseInterface $response */
 			$response = $client->get($host. $path, $params);
 			if(is_null($response)) {
 				var_dump($params);
@@ -108,7 +143,9 @@ abstract class AbstractGs2Client {
 			return $this->doHandling($response);
 		} catch(RequestException $e) {
 			if(is_null($e->getResponse())) {
-				throw new InternalServerErrorException($e);
+                throw new InternalServerErrorException([
+                    'message' => $e->getMessage()
+                ]);
 			} else {
 				return $this->doHandling($e->getResponse());
 			}
@@ -124,16 +161,24 @@ abstract class AbstractGs2Client {
 	 * @param string $path アクセス先パス
 	 * @param string $body リクエストボディ
 	 * @param array $query クエリストリング
-	 * @param array $extparams 拡張オプション
+	 * @param array $alternativeParams 拡張オプション
 	 * @return array 応答内容(JSON)
-	 *
-	 * @throws BadRequestException リクエストパラメータが不正な場合にスローされます
+     * @throws InternalServerErrorException
+     * @throws NullPointerException
 	 */
-	protected function doPost($module, $function, $endpoint, $path, $body, array &$query = [], array &$extparams = []) {
+	protected function doPost(
+	    string $module,
+        string $function,
+        string $endpoint,
+        string $path,
+        string $body,
+        array &$query = [],
+        array &$alternativeParams = []
+    ) {
 		if(is_null($body)) throw new NullPointerException();
 		$host = str_replace('{service}', $endpoint, str_replace('{region}', $this->region, AbstractGs2Client::ENDPOINT_HOST));
-		$params = $this->params;
-		$params += $extparams;
+		$params = $this->options;
+		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
 		$sign = $this->createSign($module, $function, $timestamp);
@@ -151,6 +196,7 @@ abstract class AbstractGs2Client {
 		$params += ['json' => $body];
 		$client = new Client(['base_uri' => $host]);
 		try {
+		    /** @var ResponseInterface $response */
 			$response = $client->post($host. $path, $params);
 			if(is_null($response)) {
 				var_dump($params);
@@ -159,7 +205,9 @@ abstract class AbstractGs2Client {
 			return $this->doHandling($response);
 		} catch(RequestException $e) {
 			if(is_null($e->getResponse())) {
-				throw new InternalServerErrorException($e);
+                throw new InternalServerErrorException([
+                    'message' => $e->getMessage()
+                ]);
 			} else {
 				return $this->doHandling($e->getResponse());
 			}
@@ -175,16 +223,24 @@ abstract class AbstractGs2Client {
 	 * @param string $path アクセス先パス
 	 * @param string $body リクエストボディ
 	 * @param array $query クエリストリング
-	 * @param array $extparams 拡張オプション
+	 * @param array $alternativeParams 拡張オプション
 	 * @return array 応答内容(JSON)
-	 *
-	 * @throws BadRequestException リクエストパラメータが不正な場合にスローされます
+     * @throws InternalServerErrorException
+     * @throws NullPointerException
 	 */
-	protected function doPut($module, $function, $endpoint, $path, $body, array &$query = [], array &$extparams = []) {
+	protected function doPut(
+	    string $module,
+        string $function,
+        string $endpoint,
+        string $path,
+        string $body,
+        array &$query = [],
+        array &$alternativeParams = []
+    ) {
 		if(is_null($body)) throw new NullPointerException();
 		$host = str_replace('{service}', $endpoint, str_replace('{region}', $this->region, AbstractGs2Client::ENDPOINT_HOST));
-		$params = $this->params;
-		$params += $extparams;
+		$params = $this->options;
+		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
 		$sign = $this->createSign($module, $function, $timestamp);
@@ -202,6 +258,7 @@ abstract class AbstractGs2Client {
 		$params += ['json' => $body];
 		$client = new Client(['base_uri' => $host]);
 		try {
+            /** @var ResponseInterface $response */
 			$response = $client->put($host. $path, $params);
 			if(is_null($response)) {
 				var_dump($params);
@@ -210,7 +267,9 @@ abstract class AbstractGs2Client {
 			return $this->doHandling($response);
 		} catch(RequestException $e) {
 			if(is_null($e->getResponse())) {
-				throw new InternalServerErrorException($e);
+                throw new InternalServerErrorException([
+                    'message' => $e->getMessage()
+                ]);
 			} else {
 				return $this->doHandling($e->getResponse());
 			}
@@ -225,15 +284,21 @@ abstract class AbstractGs2Client {
 	 * @param string $endpoint アクセス先サブドメイン
 	 * @param string $path アクセス先パス
 	 * @param array $query クエリストリング
-	 * @param array $extparams 拡張オプション
+	 * @param array $alternativeParams 拡張オプション
 	 * @return array 応答内容(JSON)
-	 *
-	 * @throws BadRequestException リクエストパラメータが不正な場合にスローされます
+     * @throws InternalServerErrorException
 	 */
-	protected function doDelete($module, $function, $endpoint, $path, array &$query = [], array &$extparams = []) {
+	protected function doDelete(
+	    string $module,
+        string $function,
+        string $endpoint,
+        string $path,
+        array &$query = [],
+        array &$alternativeParams = []
+    ) {
 		$host = str_replace('{service}', $endpoint, str_replace('{region}', $this->region, AbstractGs2Client::ENDPOINT_HOST));
-		$params = $this->params;
-		$params += $extparams;
+		$params = $this->options;
+		$params += $alternativeParams;
 		$params += ['timeout' => 60];
 		$timestamp = time();
 		$sign = $this->createSign($module, $function, $timestamp);
@@ -250,6 +315,7 @@ abstract class AbstractGs2Client {
 		$params += ['query' => $query];
 		$client = new Client(['base_uri' => $host]);
 		try {
+            /** @var ResponseInterface $response */
 			$response = $client->delete($host. $path, $params);
 			if(is_null($response)) {
 				var_dump($params);
@@ -258,7 +324,9 @@ abstract class AbstractGs2Client {
 			return $this->doHandling($response);
 		} catch(RequestException $e) {
 			if(is_null($e->getResponse())) {
-				throw new InternalServerErrorException($e);
+				throw new InternalServerErrorException([
+				    'message' => $e->getMessage()
+                ]);
 			} else {
 				return $this->doHandling($e->getResponse());
 			}
@@ -268,13 +336,22 @@ abstract class AbstractGs2Client {
 	/**
 	 * レスポンスをパースする
 	 * 
-	 * @param unknown $response レスポンス
+	 * @param ResponseInterface $response レスポンス
 	 * @throws BadRequestException リクエストパラメータが不正な場合にスローされます
 	 * @return array 応答内容(JSON)
-	 */
-	private function doHandling($response) {
+     * @throws BadGatewayException
+     * @throws BadRequestException
+     * @throws ConflictException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
+     * @throws QuotaExceedException
+     * @throws RequestTimeoutException
+     * @throws ServiceUnavailableException
+     * @throws UnauthorizedException
+     */
+	private function doHandling(ResponseInterface $response) {
 		$statusCode = $response->getStatusCode();
-		$body = $response->getBody(true);
+		$body = $response->getBody();
 		switch($statusCode) {
 			case 200: return json_decode($body, true);
 			case 400: throw new BadRequestException(json_decode(json_decode($body, true)['message'], true));
@@ -287,7 +364,8 @@ abstract class AbstractGs2Client {
 			case 503: throw new ServiceUnavailableException(json_decode(json_decode($body, true)['message'], true));
 			case 504: throw new RequestTimeoutException(json_decode(json_decode($body, true)['message'], true));
 		}
-		print $statusCode;
-		print $body;
+        throw new InternalServerErrorException([
+            'message' => "[$statusCode] unknown error"
+        ]);
 	}
 }
